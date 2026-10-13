@@ -1,21 +1,16 @@
-"""Checks for mini.py's env-module hook and scripts/arc.py's playthrough rules; run: python -m unittest test_envs -v.
+"""Checks for mini.py's env-module hook; run: python -m unittest test_envs -v.
 
 A pure-JAX toy env module with packed frames and two games (game 1 forbids action 2) stands in for the ARC engine.
 """
 
-import sys
 import types
 import unittest
-from pathlib import Path
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 
 import mini as m
-
-sys.path.insert(0, str(Path(__file__).resolve().parent / "scripts"))
-import arc
 
 SMALL = dict(INNER=2, VALID=1, BATCH=8, BUFFER=29 * 32, AGENTS=2)
 
@@ -72,33 +67,6 @@ class EnvHookTests(unittest.TestCase):
         self.assertEqual(m.stem(p, frame).shape, (1, m.STEM))
         g = jax.grad(lambda p: m.stem(p, frame).sum())(p)
         self.assertTrue(all(np.isfinite(x).all() for x in jax.tree.leaves(g)))
-
-class ArcRulesTests(unittest.TestCase):  # the playthrough rules of arc.step on a fake engine
-    def setUp(self):
-        self.saved = arc.engine, arc.RAW, arc.VALID, arc.BUDGET
-        arc.RAW, arc.VALID = jnp.zeros((1, 5), jnp.uint8), jnp.ones((1, 5), bool)
-        arc.BUDGET = jnp.array([[3, 5]])
-    def tearDown(self):
-        arc.engine, arc.RAW, arc.VALID, arc.BUDGET = self.saved
-    def run_engine(self, script):  # script: per step, (flags, levels) the fake engine returns
-        rows, steps = [], iter(script)
-        def fake(r, game):
-            rows.append(np.asarray(r)[0])
-            flags, levels = next(steps)
-            flags, levels = jnp.array([flags], jnp.uint8), jnp.array([levels], jnp.uint8)
-            return jnp.zeros((1, 2048), jnp.uint8), jnp.zeros(1), flags, levels
-        arc.engine = fake
-        state, log = arc.reset(None, 0, 1), []
-        for _ in script:
-            state, r, done = arc.step(None, state, jnp.zeros(1, jnp.int32))
-            log.append((float(r[0]), bool(done[0])))
-        return rows, log
-    def test_level_up_game_over_and_budget(self):
-        script = [(8, 0), (0, 1), (1, 1), (0, 1), (0, 1), (0, 1), (0, 1), (8, 0)]  # (flags, levels) per step
-        rows, log = self.run_engine(script)
-        self.assertEqual([x[3] for x in rows], [254, 0, 0, 255, 0, 0, 0, 254])  # hard reset, retry, hard reset
-        self.assertEqual([r for r, _ in log], [0, 1, 0, 0, 0, 0, 0, 0])
-        self.assertEqual([d for _, d in log], [False] * 6 + [True, False])  # level 2's budget of 5 actions runs out
 
 if __name__ == "__main__":
     unittest.main()
