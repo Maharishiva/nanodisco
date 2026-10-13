@@ -5,6 +5,10 @@ from targets emitted by a reverse GRU, and a **separate learned meta-critic**
 supplies the outer meta-gradient. The core is about 350 lines. No pretrained
 weights, optimal-action labels, reward shaping, or oracle training are used.
 
+![A frozen learned update rule against PPO](results/best_rule.png)
+
+*One learned update rule, frozen after meta-training, against PPO with a tuned learning rate: it beats PPO on 8 unseen ARC games and on MinAtar Breakout, and trails it on Craftax-Classic pixels.*
+
 ## Run
 
 Python 3.12 was tested on the Mac:
