@@ -1,0 +1,13 @@
+line-length = 120  # lint only: do not run `ruff format`, it re-adds PEP 8 double blank lines
+extend-exclude = [".venv"]
+
+[lint]
+select = ["E", "F", "W", "I"]
+
+[lint.per-file-ignores]
+"scripts/*" = ["E402"]  # scripts put the repo root on sys.path before importing mini
+"evaluate.py" = ["F403", "F405"]  # star import of disco.py's names
+
+[lint.isort]
+known-first-party = ["mini", "bench", "breakout", "disco", "symbolic", "minatar", "craftax_pixels"]
+lines-after-imports = 1
